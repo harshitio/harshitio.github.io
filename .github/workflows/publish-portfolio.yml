@@ -1,0 +1,79 @@
+name: Build and publish portfolio
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/publish-portfolio.yml
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Source branch or commit in harshitio/harshit-portfolio
+        required: false
+        default: main
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-portfolio-site
+  cancel-in-progress: false
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out portfolio source
+        uses: actions/checkout@v4
+        with:
+          repository: harshitio/harshit-portfolio
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.source_ref != '' && inputs.source_ref || 'main' }}
+          path: portfolio-source
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: portfolio-source/package-lock.json
+
+      - name: Install dependencies and build
+        working-directory: portfolio-source
+        run: |
+          npm ci
+          npm run build
+
+      - name: Verify the production output
+        run: |
+          test -s portfolio-source/dist/index.html
+          test -s portfolio-source/dist/hero/blackhole.jpg
+          test -s portfolio-source/dist/projects/quote-generator/col2-image.webp
+
+      - name: Check out published GitHub Pages site
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: published-site
+
+      - name: Sync the built site
+        run: |
+          rsync -a --delete \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='404.html' \
+            portfolio-source/dist/ published-site/
+
+      - name: Commit and push only if the build changed
+        working-directory: published-site
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          if git diff --cached --quiet; then
+            echo "The published site already matches the production build."
+          else
+            git commit -m "Publish portfolio production build [skip ci]"
+            git push origin HEAD:main
+          fi
