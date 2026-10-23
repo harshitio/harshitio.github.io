@@ -51,6 +51,13 @@ jobs:
           npm ci
           npm run build
 
+      - name: Record source revision
+        working-directory: portfolio-source
+        run: |
+          SOURCE_REVISION="$(git rev-parse HEAD)"
+          echo "SOURCE_REVISION=$SOURCE_REVISION" >> "$GITHUB_ENV"
+          echo "Built source revision: `$SOURCE_REVISION`" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Verify the production output
         run: |
           test -s portfolio-source/dist/index.html
@@ -84,6 +91,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "The published site already matches the production build."
           else
-            git commit -m "Publish portfolio production build [skip ci]"
+            git commit -m "Publish portfolio production build from ${SOURCE_REVISION:0:7} [skip ci]"
             git push origin HEAD:main
           fi
