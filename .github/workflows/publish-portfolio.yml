@@ -62,7 +62,6 @@ jobs:
           rsync -a --delete \
             --exclude='.git/' \
             --exclude='.github/' \
-            --exclude='404.html' \
             portfolio-source/dist/ published-site/
 
       - name: Commit and push only if the build changed
