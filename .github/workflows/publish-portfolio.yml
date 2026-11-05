@@ -66,7 +66,8 @@ jobs:
           test -s portfolio-source/dist/hero/blackhole.mp4
           test -s portfolio-source/dist/og-image.jpg
           test -s portfolio-source/dist/favicon.svg
-          test -s portfolio-source/dist/projects/quote-generator/col2-image.webp
+          test -n "$(find portfolio-source/dist/assets -maxdepth 1 -type f -name '*.js' -print -quit)"
+          grep -R -q 'HARSHIT.IO' portfolio-source/dist/assets
           test -s portfolio-source/dist/socials/github.ico
 
       - name: Check out published GitHub Pages site
